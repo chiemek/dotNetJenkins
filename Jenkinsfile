@@ -1,49 +1,50 @@
 pipeline {
-    agent any
+    agent any // Runs on any agent; ensure .NET SDK is available
     tools {
-        // Specify the .NET SDK version installed on the Jenkins agent
-        dotnet 'dotnet-sdk-8.0' // Adjust to your .NET version (e.g., 'dotnet-sdk-6.0')
+        dotnet 'dotnet-sdk-8.0' // Must match Global Tool Configuration
     }
     stages {
+        stage('Check SDK') {
+            steps {
+                sh 'dotnet --version' // Debug SDK version
+            }
+        }
         stage('Checkout') {
             steps {
-                // Clone the repository
-                git url: 'https://github.com/your-repo/your-dotnet-app.git', branch: 'main'
+                git url: 'https://github.com/chiemek/dotNetJenkins.git', branch: 'master'
+                // If private repo, add: credentialsId: 'your-credential-id'
             }
         }
         stage('Restore') {
             steps {
-                // Restore NuGet packages
                 sh 'dotnet restore'
             }
         }
         stage('Build') {
             steps {
-                // Build the application in Release configuration
                 sh 'dotnet build --configuration Release --no-restore'
             }
         }
         stage('Test') {
+            when {
+                expression { fileExists('**/*Tests.csproj') } // Run only if test projects exist
+            }
             steps {
-                // Run tests (if the project includes a test project)
                 sh 'dotnet test --no-build --configuration Release'
             }
         }
         stage('Publish') {
             steps {
-                // Publish the application (e.g., for deployment)
                 sh 'dotnet publish --configuration Release --output ./publish'
             }
         }
     }
     post {
         always {
-            // Archive build artifacts (e.g., published files)
             archiveArtifacts artifacts: 'publish/**', allowEmptyArchive: true
         }
         failure {
-            // Notify on failure (optional: configure email or Slack notifications)
-            echo 'Build failed!'
+            echo 'Build failed! Check console output.'
         }
         success {
             echo 'Build succeeded!'
