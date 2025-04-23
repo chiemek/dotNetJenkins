@@ -12,7 +12,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 // Pull code from your Git repository
-                git branch: 'main', credentialsId: 'your-git-credentials-id', url: 'https://github.com/your-repo/dotnet-app.git'
+                git branch: 'master', url: 'https://github.com/chiemek/dotNetJenkins.git'
             }
         }
         stage('Restore') {
