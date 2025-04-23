@@ -3,6 +3,7 @@ pipeline {
     tools {
         // Use 'dotnetsdk' or 'dotnet' depending on plugin version; 'dotnetsdk' is typically correct
         dotnetsdk 'dotnet-8.0' // Must match the name in Global Tool Configuration
+        git 'default-git'
     }
     environment {
         // Set temporary directory for .NET CLI to avoid permission issues
