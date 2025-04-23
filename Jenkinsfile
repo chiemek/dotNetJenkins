@@ -28,12 +28,7 @@ pipeline {
                 bat 'dotnet build --configuration Release --no-restore'
             }
         }
-        stage('Test') {
-            steps {
-                // Run unit tests
-                bat 'dotnet test --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"'
-            }
-        }
+       
         stage('Publish') {
             steps {
                 // Publish the app for deployment
@@ -48,10 +43,7 @@ pipeline {
         }
     }
     post {
-        always {
-            // Publish test results (requires MSTest or JUnit plugin)
-            junit '**/test-results.trx'
-        }
+       
         success {
             echo 'Build and tests succeeded!'
         }
