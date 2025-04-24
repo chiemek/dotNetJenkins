@@ -46,7 +46,7 @@ pipeline {
                     bat """
                         dotnet-sonarscanner begin ^
                         /k:"${SONAR_PROJECT_KEY}" ^
-                        /o:'practiceci' ^
+                        /o:'practiceCI' ^
                         /d:sonar.login="${SONAR_TOKEN}" ^
                         /d:sonar.host.url="${SONAR_HOST_URL}"
                     """
