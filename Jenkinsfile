@@ -14,7 +14,7 @@ pipeline {
         // Fetch environment variables from Jenkins global/job config
         DOCKER_IMAGE = "${env.DOCKER_IMAGE_NAME ?: 'mekus1085/dotNetJenkins'}"
         REGISTRY = "${env.DOCKER_REGISTRY ?: 'docker.io'}"
-        SONAR_HOST_URL = "${env.SONAR_HOST_URL ?: 'http://your-sonarqube-server:9000'}"
+        SONAR_HOST_URL = ("https://sonarcloud.io")
         SONAR_PROJECT_KEY = "${env.SONAR_PROJECT_KEY ?: 'your-sonarqube-project-key'}"
         DOTNET_CLI_HOME = "${WORKSPACE}\\dotnet_temp"
     }
