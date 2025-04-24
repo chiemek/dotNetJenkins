@@ -7,15 +7,15 @@ pipeline {
     }
     environment {
        // Fetch credentials from Jenkins
-        SONAR_TOKEN = "${env.SONAR_TOKEN}"
-        SNYK_TOKEN = "${SNYK_TOKEN}"
-        DOCKER_CREDENTIALS = "${DOCKER_CREDENTIALS}"
+        SONAR_TOKEN = credentials("SONAR_TOKEN")
+        SNYK_TOKEN = credentials("SYNK_TOKEN")
+        DOCKER_CREDENTIALS = credentials("DOCKER_CREDENTIALS")
         
         // Fetch environment variables from Jenkins global/job config
         DOCKER_IMAGE = "${env.DOCKER_IMAGE_NAME ?: 'mekus1085/dotNetJenkins'}"
         REGISTRY = "${env.DOCKER_REGISTRY ?: 'docker.io'}"
-        SONAR_HOST_URL = ("https://sonarcloud.io")
-        SONAR_PROJECT_KEY = "${env.SONAR_PROJECT_KEY ?: 'your-sonarqube-project-key'}"
+        SONAR_HOST_URL = credentials("SONAR_HOST_URL")
+        SONAR_PROJECT_KEY = credentials("SONAR_PROJECT_KEY")
         DOTNET_CLI_HOME = "${WORKSPACE}\\dotnet_temp"
     }
     stages {
