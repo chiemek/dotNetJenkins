@@ -7,12 +7,12 @@ pipeline {
     }
     environment {
        // Fetch credentials from Jenkins
-        SONAR_TOKEN = credentials('sonarqube-token') // SonarQube token
-        SNYK_TOKEN = credentials('snyk-token') // Snyk token
-        DOCKER_CREDENTIALS = credentials('docker-hub-credentials') // Docker Hub credentials
+        SONAR_TOKEN = "${env.SONAR_TOKEN}"
+        SNYK_TOKEN = "${SNYK_TOKEN}"
+        DOCKER_CREDENTIALS = "${DOCKER_CREDENTIALS}"
         
         // Fetch environment variables from Jenkins global/job config
-        DOCKER_IMAGE = "${env.DOCKER_IMAGE_NAME ?: 'your-dockerhub-username/your-dotnet-app'}"
+        DOCKER_IMAGE = "${env.DOCKER_IMAGE_NAME ?: 'mekus1085/dotNetJenkins'}"
         REGISTRY = "${env.DOCKER_REGISTRY ?: 'docker.io'}"
         SONAR_HOST_URL = "${env.SONAR_HOST_URL ?: 'http://your-sonarqube-server:9000'}"
         SONAR_PROJECT_KEY = "${env.SONAR_PROJECT_KEY ?: 'your-sonarqube-project-key'}"
