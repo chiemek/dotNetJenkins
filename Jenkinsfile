@@ -6,7 +6,16 @@ pipeline {
         git 'default-git'
     }
     environment {
-        // Set temporary directory for .NET CLI to avoid permission issues
+       // Fetch credentials from Jenkins
+        SONAR_TOKEN = credentials('sonarqube-token') // SonarQube token
+        SNYK_TOKEN = credentials('snyk-token') // Snyk token
+        DOCKER_CREDENTIALS = credentials('docker-hub-credentials') // Docker Hub credentials
+        
+        // Fetch environment variables from Jenkins global/job config
+        DOCKER_IMAGE = "${env.DOCKER_IMAGE_NAME ?: 'your-dockerhub-username/your-dotnet-app'}"
+        REGISTRY = "${env.DOCKER_REGISTRY ?: 'docker.io'}"
+        SONAR_HOST_URL = "${env.SONAR_HOST_URL ?: 'http://your-sonarqube-server:9000'}"
+        SONAR_PROJECT_KEY = "${env.SONAR_PROJECT_KEY ?: 'your-sonarqube-project-key'}"
         DOTNET_CLI_HOME = "${WORKSPACE}\\dotnet_temp"
     }
     stages {
@@ -28,7 +37,32 @@ pipeline {
                 bat 'dotnet build --configuration Release --no-restore'
             }
         }
-       
+
+        stage('SonarQube Analysis') {
+            steps {
+                // Run SonarQube scanner
+                withSonarQubeEnv('SonarQube') {
+                    bat 'dotnet tool install --global dotnet-sonarscanner'
+                    bat """
+                        dotnet-sonarscanner begin ^
+                        /k:"${SONAR_PROJECT_KEY}" ^
+                        /d:sonar.login="${SONAR_TOKEN}" ^
+                        /d:sonar.host.url="${SONAR_HOST_URL}"
+                    """
+                    bat 'dotnet build'
+                    bat 'dotnet-sonarscanner end /d:sonar.login="${SONAR_TOKEN}"'
+                }
+            }
+        }
+
+        stage('Snyk Dependency Scan') {
+            steps {
+                // Run Snyk to scan for vulnerabilities
+                bat 'snyk auth %SNYK_TOKEN%'
+                bat 'snyk test --file=practiceCI.sln --severity-threshold=high'
+            }
+        }
+
         stage('Publish') {
             steps {
                 // Publish the app for deployment
@@ -41,14 +75,48 @@ pipeline {
                 archiveArtifacts artifacts: 'publish\\**', allowEmptyArchive: true
             }
         }
-    }
+
+        stage('Build Docker Image') {
+            steps {
+                // Build Docker image
+                bat 'docker build -t %DOCKER_IMAGE%:%BUILD_NUMBER% .'
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                // Scan Docker image with Trivy
+                bat 'trivy image --severity HIGH,CRITICAL --exit-code 1 %DOCKER_IMAGE%:%BUILD_NUMBER%'
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                // Log in to Docker Hub and push image
+                powershell """
+                    \$password = ConvertTo-SecureString \$env:DOCKER_CREDENTIALS_PSW -AsPlainText -Force
+                    \$credential = New-Object System.Management.Automation.PSCredential (\$env:DOCKER_CREDENTIALS_USR, \$password)
+                    docker login -u \$credential.UserName -p \$credential.GetNetworkCredential().Password \$env:REGISTRY
+                """
+                bat 'docker push %DOCKER_IMAGE%:%BUILD_NUMBER%'
+                bat 'docker tag %DOCKER_IMAGE%:%BUILD_NUMBER% %DOCKER_IMAGE%:latest'
+                bat 'docker push %DOCKER_IMAGE%:latest'
+            }
+        }
+
     post {
-       
-        success {
-            echo 'Build and tests succeeded!'
+        always {
+            // Clean up Docker images
+            bat 'docker rmi %DOCKER_IMAGE%:%BUILD_NUMBER% || exit 0'
+            bat 'docker rmi %DOCKER_IMAGE%:latest || exit 0'
         }
         failure {
-            echo 'Build or tests failed.'
+            // Notify on failure
+            mail to: "${env.NOTIFICATION_EMAIL ?: 'mekus1085@gmail.com'}",
+                 subject: "Jenkins Pipeline Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                 body: "Check the build logs at ${env.BUILD_URL}"
         }
     }
+       
+      
 }
