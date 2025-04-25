@@ -90,22 +90,38 @@ pipeline {
             steps {
                 // Run Snyk to scan for vulnerabilities
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
-                    sh '''
-                        echo "Checking for snyk CLI..."
-                        command -v snyk >/dev/null 2>&1 && snyk --version || echo "snyk not found"
-                        # Install snyk if not found
-                    if ! command -v snyk >/dev/null 2>&1; then
-                        echo "Installing snyk CLI..."
-                        npm install -g snyk || echo "Failed to install snyk"
-                        export PATH="$PATH:$HOME/.npm-global/bin"
-                        # Verify installation
-                        ls -l $HOME/.npm-global/bin || echo "Directory $HOME/.npm-global/bin not found"
-                        snyk --version || echo "snyk still not found after installation"
-                    fi
-                    # Run snyk authentication and scan
-                    snyk auth $SNYK_TOKEN
-                    snyk test --file=practiceCI.sln --severity-threshold=high
-                    '''
+                    sh sh '''
+                echo "Checking environment..."
+                node --version || echo "Node.js not found"
+                npm --version || echo "npm not found"
+                echo "Current PATH: $PATH"
+                echo "Checking for snyk CLI..."
+                command -v snyk >/dev/null 2>&1 && snyk --version || echo "snyk not found"
+                # Configure npm global directory
+                mkdir -p $HOME/.npm-global
+                npm config set prefix $HOME/.npm-global
+                # Install snyk globally
+                if ! command -v snyk >/dev/null 2>&1; then
+                    echo "Installing snyk CLI globally..."
+                    npm install -g snyk || echo "Global snyk installation failed"
+                    export PATH="$PATH:$HOME/.npm-global/bin"
+                    # Verify global installation
+                    ls -l $HOME/.npm-global/bin || echo "Directory $HOME/.npm-global/bin not found"
+                    snyk --version || echo "snyk not found after global install"
+                fi
+                # Fallback to local installation
+                if ! command -v snyk >/dev/null 2>&1; then
+                    echo "Falling back to local snyk installation..."
+                    mkdir -p ./snyk-tool
+                    npm install snyk --prefix ./snyk-tool || echo "Local snyk installation failed"
+                    export PATH="$PATH:$PWD/snyk-tool/bin"
+                    ls -l ./snyk-tool/bin || echo "Directory ./snyk-tool/bin not found"
+                    ./snyk-tool/bin/snyk --version || echo "snyk not found after local install"
+                fi
+                # Run snyk authentication and scan
+                snyk auth $SNYK_TOKEN
+                snyk test --file=practiceCI.sln --severity-threshold=high
+            '''
                 }
             }
         }
