@@ -36,14 +36,17 @@ pipeline {
                 sh 'dotnet build --configuration Release --no-restore'
             }
         }
-       stage('SonarQube Analysis') {
+        
+        stage('SonarQube Analysis') {
             steps {
-                // Run SonarQube scanner
-                withSonarQubeEnv('SonarQube') {
-                // Install dotnet-sonarscanner and add to PATH
+            // Run SonarQube scanner
+            withSonarQubeEnv('SonarQube') {
+                // Install dotnet-sonarscanner and run commands in the same shell session
                 sh '''
-                dotnet tool install --global dotnet-sonarscanner
-                export PATH="$PATH:$HOME/.dotnet/tools"
+                    dotnet tool install --global dotnet-sonarscanner
+                    export PATH="$PATH:$HOME/.dotnet/tools"
+                    # Verify installation
+                    dotnet-sonarscanner --version
                 '''
                 // Run SonarQube analysis with secure variable handling
                 withCredentials([
@@ -52,6 +55,7 @@ pipeline {
                     string(credentialsId: 'SONAR_PROJECT_KEY', variable: 'SONAR_PROJECT_KEY')
                 ]) {
                 sh '''
+                    export PATH="$PATH:$HOME/.dotnet/tools"
                     dotnet-sonarscanner begin \
                     /k:"$SONAR_PROJECT_KEY" \
                     /o:"dotnetjenkins" \
@@ -59,7 +63,10 @@ pipeline {
                     /d:sonar.host.url="$SONAR_HOST_URL"
                 '''
                 sh 'dotnet build'
-                sh 'dotnet-sonarscanner end /d:sonar.login="$SONAR_TOKEN"'
+                sh '''
+                    export PATH="$PATH:$HOME/.dotnet/tools"
+                    dotnet-sonarscanner end /d:sonar.login="$SONAR_TOKEN"
+                '''
                     }
                 }
             }
