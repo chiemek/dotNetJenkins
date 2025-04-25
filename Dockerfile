@@ -22,7 +22,8 @@ RUN dotnet build "./practiceCI.csproj" -c $BUILD_CONFIGURATION -o /app/build
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./practiceCI.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-RUN apt-get update && \
+RUN echo "deb http://deb.debian.org/debian-security bookworm-security main" >> /etc/apt/sources.list && \
+    apt-get update && \
     apt-get install -y perl-base=5.36.0-7+deb12u2 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
