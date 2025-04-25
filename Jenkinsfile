@@ -39,38 +39,34 @@ pipeline {
         
         stage('SonarQube Analysis') {
             steps {
-            // Run SonarQube scanner
-            withSonarQubeEnv('SonarQube') {
-                // Install dotnet-sonarscanner and run commands in the same shell session
-                sh '''
-                    dotnet tool install --global dotnet-sonarscanner
-                    export PATH="$PATH:$HOME/.dotnet/tools"
-                    # Verify installation
-                    dotnet-sonarscanner --version
-                '''
-                // Run SonarQube analysis with secure variable handling
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        export PATH="$PATH:$HOME/.dotnet/tools"
+                        dotnet-sonarscanner --version
+                    '''
                 withCredentials([
                     string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN'),
                     string(credentialsId: 'SONAR_HOST_URL', variable: 'SONAR_HOST_URL'),
                     string(credentialsId: 'SONAR_PROJECT_KEY', variable: 'SONAR_PROJECT_KEY')
                 ]) {
-                sh '''
-                    export PATH="$PATH:$HOME/.dotnet/tools"
-                    dotnet-sonarscanner begin \
-                    /k:"$SONAR_PROJECT_KEY" \
-                    /o:"dotnetjenkins" \
-                    /d:sonar.login="$SONAR_TOKEN" \
-                    /d:sonar.host.url="$SONAR_HOST_URL"
-                '''
-                sh 'dotnet build'
-                sh '''
-                    export PATH="$PATH:$HOME/.dotnet/tools"
-                    dotnet-sonarscanner end /d:sonar.login="$SONAR_TOKEN"
-                '''
+                    sh '''
+                        export PATH="$PATH:$HOME/.dotnet/tools"
+                        dotnet-sonarscanner begin \
+                        /k:"$SONAR_PROJECT_KEY" \
+                        /o:"dotnetjenkins" \
+                        /d:sonar.login="$SONAR_TOKEN" \
+                        /d:sonar.host.url="$SONAR_HOST_URL"
+                    '''
+                    sh 'dotnet build'
+                    sh '''
+                        export PATH="$PATH:$HOME/.dotnet/tools"
+                        dotnet-sonarscanner end /d:sonar.login="$SONAR_TOKEN"
+                    '''
                     }
                 }
             }
         }
+        
         stage('Snyk Dependency Scan') {
             steps {
                 // Run Snyk to scan for vulnerabilities
