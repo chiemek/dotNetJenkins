@@ -71,7 +71,7 @@ pipeline {
                 sh '''
                     export PATH="$PATH:$HOME/.dotnet/tools:$PWD/sonarscanner"
                     dotnet-sonarscanner begin \
-                    /k:"$SONAR_PROJECT_KEY" \
+                    /k:"dotnetjenkins" \
                     /o:"dotnetjenkins" \
                     /d:sonar.login="$SONAR_TOKEN" \
                     /d:sonar.host.url="$SONAR_HOST_URL"
@@ -146,10 +146,21 @@ pipeline {
         }
         stage('Trivy Image Scan') {
             steps {
-                // Scan Docker image with Trivy
-                sh "trivy image --severity HIGH,CRITICAL --exit-code 1 ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                sh '''
+                    echo "Checking trivy CLI..."
+                    command -v trivy >/dev/null 2>&1 && trivy --version || echo "trivy not found"
+                    # Install trivy if not found
+                    if ! command -v trivy >/dev/null 2>&1; then
+                        echo "Installing trivy..."
+                        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin || { echo "trivy installation failed"; exit 1; }
+                    fi
+                trivy --version
+                # Run trivy scan
+                trivy image --severity HIGH,CRITICAL --exit-code 1 "${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                '''
             }
         }
+        
         stage('Push Docker Image') {
             steps {
                 // Log in to Docker Hub and push image
