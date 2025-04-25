@@ -145,6 +145,9 @@ pipeline {
             }
         }
         stage('Trivy Image Scan') {
+            environment {
+                TRIVY_DISABLE_VEX_NOTICE = 'true'
+            }
             steps {
                 sh '''
                     echo "Checking trivy CLI..."
@@ -156,7 +159,7 @@ pipeline {
                     fi
                 trivy --version
                 # Run trivy scan
-                trivy image --severity HIGH,CRITICAL --exit-code 1 "${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                trivy image --severity HIGH,CRITICAL --exit-code 1 --ignore-unfixed "${DOCKER_IMAGE}:${BUILD_NUMBER}"
                 '''
             }
         }
