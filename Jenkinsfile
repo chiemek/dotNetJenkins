@@ -89,10 +89,27 @@ pipeline {
         stage('Snyk Dependency Scan') {
             steps {
                 // Run Snyk to scan for vulnerabilities
-                sh 'snyk auth $SNYK_TOKEN'
-                sh 'snyk test --file=practiceCI.sln --severity-threshold=high'
+                withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
+                    sh '''
+                        echo "Checking for snyk CLI..."
+                        command -v snyk >/dev/null 2>&1 && snyk --version || echo "snyk not found"
+                        # Install snyk if not found
+                    if ! command -v snyk >/dev/null 2>&1; then
+                        echo "Installing snyk CLI..."
+                        npm install -g snyk || echo "Failed to install snyk"
+                        export PATH="$PATH:$HOME/.npm-global/bin"
+                        # Verify installation
+                        ls -l $HOME/.npm-global/bin || echo "Directory $HOME/.npm-global/bin not found"
+                        snyk --version || echo "snyk still not found after installation"
+                    fi
+                    # Run snyk authentication and scan
+                    snyk auth $SNYK_TOKEN
+                    snyk test --file=practiceCI.sln --severity-threshold=high
+                    '''
+                }
             }
         }
+        
         stage('Publish') {
             steps {
                 // Publish the app for deployment
