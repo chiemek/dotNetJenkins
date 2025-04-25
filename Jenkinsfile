@@ -179,6 +179,7 @@ pipeline {
                 }
             }
         }
+    }
     post {
         always {
             // Clean up Docker images
