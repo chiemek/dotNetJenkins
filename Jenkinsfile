@@ -36,32 +36,51 @@ pipeline {
                 sh 'dotnet build --configuration Release --no-restore'
             }
         }
-        
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh '''
-                        export PATH="$PATH:$HOME/.dotnet/tools"
-                        dotnet-sonarscanner --version
-                    '''
+            // Run SonarQube scanner
+            withSonarQubeEnv('SonarQube') {
+                // Debug and install dotnet-sonarscanner
+                sh '''
+                    echo "DOTNET_CLI_HOME is $DOTNET_CLI_HOME"
+                    echo "HOME is $HOME"
+                    echo "Checking .NET SDK version..."
+                    dotnet --version
+                    echo "Attempting global installation of dotnet-sonarscanner..."
+                    unset DOTNET_CLI_HOME  # Temporarily unset to use default global path
+                    dotnet tool install --global dotnet-sonarscanner || echo "Global install failed"
+                    export PATH="$PATH:$HOME/.dotnet/tools"
+                    # Verify tool installation
+                    ls -l $HOME/.dotnet/tools || echo "Directory $HOME/.dotnet/tools not found"
+                    dotnet-sonarscanner --version || echo "dotnet-sonarscanner not found in $HOME/.dotnet/tools"
+                    # Fallback to local installation if global fails
+                    if ! command -v dotnet-sonarscanner >/dev/null 2>&1; then
+                        echo "Falling back to local installation..."
+                        dotnet tool install dotnet-sonarscanner --tool-path ./sonarscanner
+                        export PATH="$PATH:$PWD/sonarscanner"
+                        ls -l ./sonarscanner
+                        ./sonarscanner/dotnet-sonarscanner --version || echo "Local install failed"
+                    fi
+                '''
+                // Run SonarQube analysis with secure variable handling
                 withCredentials([
                     string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN'),
                     string(credentialsId: 'SONAR_HOST_URL', variable: 'SONAR_HOST_URL'),
                     string(credentialsId: 'SONAR_PROJECT_KEY', variable: 'SONAR_PROJECT_KEY')
                 ]) {
-                    sh '''
-                        export PATH="$PATH:$HOME/.dotnet/tools"
-                        dotnet-sonarscanner begin \
-                        /k:"$SONAR_PROJECT_KEY" \
-                        /o:"dotnetjenkins" \
-                        /d:sonar.login="$SONAR_TOKEN" \
-                        /d:sonar.host.url="$SONAR_HOST_URL"
-                    '''
-                    sh 'dotnet build'
-                    sh '''
-                        export PATH="$PATH:$HOME/.dotnet/tools"
-                        dotnet-sonarscanner end /d:sonar.login="$SONAR_TOKEN"
-                    '''
+                sh '''
+                    export PATH="$PATH:$HOME/.dotnet/tools:$PWD/sonarscanner"
+                    dotnet-sonarscanner begin \
+                    /k:"$SONAR_PROJECT_KEY" \
+                    /o:"dotnetjenkins" \
+                    /d:sonar.login="$SONAR_TOKEN" \
+                    /d:sonar.host.url="$SONAR_HOST_URL"
+                '''
+                sh 'dotnet build'
+                sh '''
+                    export PATH="$PATH:$HOME/.dotnet/tools:$PWD/sonarscanner"
+                    dotnet-sonarscanner end /d:sonar.login="$SONAR_TOKEN"
+                '''
                     }
                 }
             }
