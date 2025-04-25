@@ -11,7 +11,7 @@ pipeline {
         DOCKER_CREDENTIALS = credentials('DOCKER_CREDENTIALS')
 
         // Fetch environment variables from Jenkins global/job config
-        DOCKER_IMAGE = "mekus1085/dotNetJenkins"
+        DOCKER_IMAGE = "mekus1085/dotnetjenkins"
         REGISTRY = "${env.DOCKER_REGISTRY ?: 'docker.io'}"
         SONAR_HOST_URL = credentials('SONAR_HOST_URL')
         SONAR_PROJECT_KEY = credentials('SONAR_PROJECT_KEY')
