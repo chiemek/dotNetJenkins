@@ -90,7 +90,7 @@ pipeline {
             steps {
                 // Run Snyk to scan for vulnerabilities
                 withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
-                    sh sh '''
+                sh '''
                 echo "Checking environment..."
                 node --version || echo "Node.js not found"
                 npm --version || echo "npm not found"
