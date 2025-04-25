@@ -166,16 +166,19 @@ pipeline {
         
         stage('Push Docker Image') {
             steps {
-                // Log in to Docker Hub and push image
-                sh """
-                    echo \$DOCKER_CREDENTIALS_PSW | docker login -u \$DOCKER_CREDENTIALS_USR --password-stdin \$REGISTRY
-                """
-                sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
-                sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
-                sh "docker push ${DOCKER_IMAGE}:latest"
+                withCredentials([
+                    usernamePassword(credentialsId: 'DOCKER_CREDENTIALS', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD'),
+                    string(credentialsId: 'SONAR_PROJECT_KEY', variable: 'SONAR_PROJECT_KEY')
+                ]) {
+                sh '''
+                    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin "$REGISTRY"
+                    docker push "${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                    docker tag "${DOCKER_IMAGE}:${BUILD_NUMBER}" "${DOCKER_IMAGE}:latest"
+                    docker push "${DOCKER_IMAGE}:latest"
+                '''
+                }
             }
         }
-    }
     post {
         always {
             // Clean up Docker images
