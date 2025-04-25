@@ -104,9 +104,7 @@ pipeline {
         }
         failure {
             // Notify on failure
-            mail to: "${env.NOTIFICATION_EMAIL ?: 'mekus1085@gmail.com'}",
-                 subject: "Jenkins Pipeline Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                 body: "Check the build logs at ${env.BUILD_URL}"
+            echo "pipeline Failed"
         }
     }
 }
